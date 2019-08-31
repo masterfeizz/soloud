@@ -49,7 +49,7 @@ static void* getDllProc(HMODULE aDllHandle, const char *aProcName)
 	return GetProcAddress(aDllHandle, aProcName);
 }
 
-#elif defined(__vita__)
+#elif defined(__vita__) || defined(_3DS)
 
 static void * openDll()
 {

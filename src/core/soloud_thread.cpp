@@ -24,6 +24,8 @@ freely, subject to the following restrictions:
 
 #if defined(_WIN32)||defined(_WIN64)
 #include <windows.h>
+#elif defined(_3DS)
+#include <3ds.h>
 #else
 #include <pthread.h>
 #include <unistd.h>
@@ -119,6 +121,90 @@ namespace SoLoud
             delete aThreadHandle;
         }
 
+#elif _3DS
+        struct ThreadHandleData
+        {
+            struct Thread_tag* thread;
+        };
+
+		void * createMutex()
+		{
+			LightLock *lock;
+			lock = new LightLock;
+		
+			LightLock_Init(lock);
+		
+			return (void*)lock;
+		}
+
+		void destroyMutex(void *aHandle)
+		{
+			LightLock *lock = (LightLock*)aHandle;
+			if (lock)
+			{
+				delete lock;
+			}
+		}
+
+		void lockMutex(void *aHandle)
+		{
+			LightLock *lock = (LightLock*)aHandle;
+			if (lock)
+			{
+				LightLock_Lock(lock);
+			}
+		}
+
+		void unlockMutex(void *aHandle)
+		{
+			LightLock *lock = (LightLock*)aHandle;
+			if (lock)
+			{
+				LightLock_Unlock(lock);
+			}
+		}
+
+		struct soloud_thread_data
+		{
+			threadFunction mFunc;
+			void *mParam;
+		};
+
+		static void threadfunc(void * d)
+		{
+			soloud_thread_data *p = (soloud_thread_data *)d;
+			p->mFunc(p->mParam);
+			delete p;
+		}
+
+		ThreadHandle createThread(threadFunction aThreadFunction, void *aParameter)
+		{
+			soloud_thread_data *d = new soloud_thread_data;
+			d->mFunc = aThreadFunction;
+			d->mParam = aParameter;
+
+			ThreadHandleData *threadHandle = new ThreadHandleData;
+
+			threadHandle->thread = threadCreate(threadfunc, (void*)d, 8 * 1024, 16, -2, false);
+
+            return threadHandle;
+		}
+
+		void sleep(int aMSec)
+		{
+			svcSleepThread(aMSec * 1000);
+		}
+
+        void wait(ThreadHandle aThreadHandle)
+        {
+        	threadJoin(aThreadHandle->thread, U64_MAX);
+        }
+
+        void release(ThreadHandle aThreadHandle)
+        {	
+        	threadFree(aThreadHandle->thread);
+            delete aThreadHandle;
+        }
 #else // pthreads
         struct ThreadHandleData
         {

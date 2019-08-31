@@ -11,6 +11,7 @@ local WITH_ALSA = 0
 local WITH_OSS = 0
 local WITH_COREAUDIO = 0
 local WITH_VITA_HOMEBREW = 0
+local WITH_N3DS_HOMEBREW = 0
 local WITH_NULL = 1
 local WITH_TOOLS = 0
 
@@ -114,6 +115,11 @@ newoption {
 newoption {
 	trigger		  = "with-vita-homebrew-only",
 	description = "Only include PS Vita homebrew backend in build"
+}
+
+newoption {
+	trigger		  = "with-n3ds-homebrew-only",
+	description = "Only include Nintendo 3DS homebrew backend in build"
 }
 
 newoption {
@@ -276,6 +282,26 @@ if _OPTIONS["with-vita-homebrew-only"] then
 	premake.gcc.ar = "arm-vita-eabi-ar"
 end
 
+if _OPTIONS["with-n3ds-homebrew-only"] then
+	WITH_SDL = 0
+	WITH_SDL2 = 0
+	WITH_SDL_STATIC = 0
+	WITH_SDL2_STATIC = 0
+	WITH_PORTAUDIO = 0
+	WITH_OPENAL = 0
+	WITH_XAUDIO2 = 0
+	WITH_WINMM = 0
+	WITH_WASAPI = 0
+	WITH_OSS = 0
+	WITH_ALSA = 0
+	WITH_VITA_HOMEBREW = 0
+	WITH_N3DS_HOMEBREW = 1
+
+	premake.gcc.cc = "arm-none-eabi-gcc"
+	premake.gcc.cxx = "arm-none-eabi-g++"
+	premake.gcc.ar = "arm-none-eabi-ar"
+end
+
 if _OPTIONS["with-native-only"] then
 	WITH_SDL = 0
 	WITH_SDL2 = 0
@@ -313,6 +339,7 @@ print ("WITH_ALSA       = ", WITH_ALSA)
 print ("WITH_OSS        = ", WITH_OSS)
 print ("WITH_COREAUDIO  = ", WITH_COREAUDIO)
 print ("WITH_VITA_HOMEBREW = ", WITH_VITA_HOMEBREW)
+print ("WITH_N3DS_HOMEBREW = ", WITH_N3DS_HOMEBREW)
 print ("WITH_TOOLS      = ", WITH_TOOLS)
 print ("")
 
@@ -350,7 +377,7 @@ solution "SoLoud"
 	-- TODO: SoLoud could do with some better platform determination. genie
 	--       doesn't do this well on it's own and is recommended to setup this
 	--       manually. See https://github.com/bkaradzic/bx/blob/master/scripts/toolchain.lua
-if (WITH_VITA_HOMEBREW == 0) then
+if (WITH_VITA_HOMEBREW == 0) and (WITH_N3DS_HOMEBREW == 0) then
 	configuration { "gmake" }
 		buildoptions { 
 			"-msse4.1", 
@@ -552,7 +579,6 @@ end
 
 if (WITH_PORTAUDIO == 1) then
 	defines {"WITH_PORTAUDIO"}
-
 	files {
 	  "../src/backend/portaudio/**.c*"
 	  }
@@ -563,7 +589,7 @@ if (WITH_PORTAUDIO == 1) then
 end
 
 if (WITH_SDL == 1) then
-		defines { "WITH_SDL" }
+	defines { "WITH_SDL" }
 	files {
 	  "../src/backend/sdl/**.c*"
 	  }
@@ -574,7 +600,7 @@ if (WITH_SDL == 1) then
 end
 
 if (WITH_SDL2 == 1) then
-		defines { "WITH_SDL2" }
+	defines { "WITH_SDL2" }
 	files {
 	  "../src/backend/sdl/**.c*"
 	  }
@@ -585,7 +611,7 @@ if (WITH_SDL2 == 1) then
 end
 
 if (WITH_SDL_STATIC == 1) then
-		defines { "WITH_SDL_STATIC" }
+	defines { "WITH_SDL_STATIC" }
 	files {
 	  "../src/backend/sdl_static/**.c*"
 	  }
@@ -596,7 +622,7 @@ if (WITH_SDL_STATIC == 1) then
 end
 
 if (WITH_SDL2_STATIC == 1) then
-		defines { "WITH_SDL2_STATIC" }
+	defines { "WITH_SDL2_STATIC" }
 	files {
 	  "../src/backend/sdl2_static/**.c*"
 	  }
@@ -607,7 +633,7 @@ if (WITH_SDL2_STATIC == 1) then
 end
 
 if (WITH_WASAPI == 1) then
-		defines { "WITH_WASAPI" }
+	defines { "WITH_WASAPI" }
 	files {
 	  "../src/backend/wasapi/**.c*"
 	  }
@@ -628,7 +654,7 @@ if (WITH_XAUDIO2 == 1) then
 end
 
 if (WITH_WINMM == 1) then
-		defines { "WITH_WINMM" }
+	defines { "WITH_WINMM" }
 	files {
 	  "../src/backend/winmm/**.c*"
 	  }
@@ -638,13 +664,25 @@ if (WITH_WINMM == 1) then
 end
 
 if (WITH_VITA_HOMEBREW == 1) then
-		defines { "WITH_VITA_HOMEBREW", "usleep=sceKernelDelayThread" }
+	defines { "WITH_VITA_HOMEBREW", "usleep=sceKernelDelayThread" }
 	files {
 	  "../src/backend/vita_homebrew/**.c*"
 	  }
 	includedirs {
 	  "../include"
 	}
+end
+
+if (WITH_N3DS_HOMEBREW == 1) then
+	defines { "WITH_N3DS_HOMEBREW", "_3DS" }
+	files {
+	  "../src/backend/n3ds_homebrew/**.c*"
+	  }
+	includedirs {
+	  "../include", path.join(os.getenv("DEVKITPRO"), "libctru/include")
+	}
+	configuration { "gmake" }
+		buildoptions { "-march=armv6k", "-mtune=mpcore", "-mfloat-abi=hard", "-mtp=soft" }
 end
 
 if (WITH_NULL == 1) then
